@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='DIY SpaceMouse Profiles',
+    name='DIY_SpaceMouse_Profiles',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

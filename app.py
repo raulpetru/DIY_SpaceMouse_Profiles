@@ -157,7 +157,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             try:
                 process = psutil.Process(pid)
                 if process.name() in (
-                        'DIY SpaceMouse Profiles.exe', 'WindowsTerminal.exe', 'explorer.exe', 'cmd.exe', 'python.exe'):
+                        'DIY_SpaceMouse_Profiles.exe', 'WindowsTerminal.exe', 'explorer.exe', 'cmd.exe', 'python.exe'):
                     if self.last_window == 'None':
                         self.active_window = 'None'
                 else:
