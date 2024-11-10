@@ -1,4 +1,4 @@
-// Original code which I (raulpetru) used to modify: https://github.com/ChromeBee/Hall-Effect-Sensor-CAD-Mouse-Spacemouse/tree/main
+// Original code which I (raulpetru) modified: https://github.com/ChromeBee/Hall-Effect-Sensor-CAD-Mouse-Spacemouse/tree/main
 // The modifications aim to allow sensitivity control from a UI application (DIY_SpaceMouse_Profiles) https://github.com/raulpetru/DIY_SpaceMouse_Profiles
 
 
