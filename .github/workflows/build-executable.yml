@@ -1,0 +1,31 @@
+name: Build Executable
+run-name: New executable for ${{ github.repository }} 🚀
+on: [push]
+
+jobs:
+  Build-Executable:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read file contents
+        id: read_file
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ./version.txt
+
+      - name: PyInstaller Action
+        id: pyinstaller-action
+        uses: Martin005/pyinstaller-action@v1.2.0
+        with:
+          spec: 'DIY SpaceMouse Profiles.spec'
+          requirements: 'requirements.txt'
+          python_ver: '3.12'
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2.0.9
+        with:
+          tag_name: ${{ steps.read_file.outputs.content }}
+          generate_release_notes: True
+          files: '${{ steps.pyinstaller-action.outputs.executable_path }}/DIY_SpaceMouse_Profiles.exe'
