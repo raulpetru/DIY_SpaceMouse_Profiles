@@ -23,9 +23,17 @@ jobs:
           requirements: 'requirements.txt'
           python_ver: '3.12'
 
+      - name: Archive Release
+        id: archive-release
+        uses: thedoctor0/zip-release@0.7.6
+        with:
+          type: 'zip'
+          filename: 'DIY_SpaceMouse_Profiles-${{ steps.read_file.outputs.content }}.zip'
+          path: ${{ steps.pyinstaller-action.outputs.executable_path }}/DIY_SpaceMouse_Profiles/
+
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2.0.9
         with:
           tag_name: ${{ steps.read_file.outputs.content }}
           generate_release_notes: True
-          files: '${{ steps.pyinstaller-action.outputs.executable_path }}/DIY_SpaceMouse_Profiles.exe'
+          files: '.${{ steps.archive-release.outputs.directory }}/DIY_SpaceMouse_Profiles-${{ steps.read_file.outputs.content }}.zip'
