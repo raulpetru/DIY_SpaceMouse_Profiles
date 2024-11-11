@@ -36,7 +36,7 @@ def get_mouse_settings(selected_port):
         except SerialException:
             pass
         if try_counter == 3:
-            sys.exit()
+            return 0
         try_counter += 1
 
     dict_mouse_settings = dict()
@@ -81,7 +81,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         ports = [p.device for p in list(serial.tools.list_ports.comports())]
         self.comboBox.addItems(ports)
-        self.mouse_settings = get_mouse_settings(self.comboBox.currentText())
+        # Find serial port that responds to 'GET_UI' instruction
+        for port in [(i, self.comboBox.itemText(i)) for i in range(self.comboBox.count())]:
+            self.mouse_settings = get_mouse_settings(port[1])
+            if self.mouse_settings != 0:
+                self.comboBox.setCurrentIndex(port[0])
+                break
+        else:
+            sys.exit()
         self.show()
 
         self.loaded_profiles = load_json()
