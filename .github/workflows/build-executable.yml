@@ -36,4 +36,4 @@ jobs:
         with:
           tag_name: ${{ steps.read_file.outputs.content }}
           generate_release_notes: True
-          files: '${{ steps.archive-release.outputs.directory }}/DIY_SpaceMouse_Profiles-${{ steps.read_file.outputs.content }}.zip'
+          files: '.${{ steps.archive-release.outputs.directory }}/DIY_SpaceMouse_Profiles-${{ steps.read_file.outputs.content }}.zip'
