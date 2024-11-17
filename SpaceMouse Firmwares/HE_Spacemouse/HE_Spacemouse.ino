@@ -67,7 +67,7 @@ bool movement3DC  = true;
 // Switch between true/false as desired.
 bool invX = false; // pan left/right
 bool invY = false; // Zoom in/out or pan up/down // C003 *JC - 3DC default movement or TT default
-bool invZ = true; // pan up/down or zoom in/out // C003 *JC - 3DC default movement or TT default
+bool invZ = false; // pan up/down or zoom in/out // C003 *JC - 3DC default movement or TT default
 bool invRX = false; // Rotate around X axis (tilt front/back)
 bool invRY = false; // Rotate around Y axis (tilt left/right)
 bool invRZ = false; // Rotate around Z axis (twist left/right)
@@ -81,13 +81,14 @@ float TRANSX_SENSITIVITY=5;
 float TRANSY_SENSITIVITY=5;
 float POS_TRANSZ_SENSITIVITY=5;
 float NEG_TRANSZ_SENSITIVITY=5;  // I want low sensitiviy for down, therefore a high value.
-float GATE_NEG_TRANSZ=15 ;       // gate value, which negative z movements will be ignored (like an additional deadzone for -z).
-float GATE_ROTX=15;              // Value under which rotX values will be forced to zero
-float GATE_ROTY=15;              // Value under which roty values will be forced to zero
-float GATE_ROTZ=75;              // Value under which rotz values will be forced to zero
+float GATE_POS_TRANSZ=0;        // gate value, which positive z movements will be ignored (like an additional deadzone for +z).
+float GATE_NEG_TRANSZ=0;       // gate value, which negative z movements will be ignored (like an additional deadzone for -z).
+float GATE_ROTX=50;              // Value under which rotX values will be forced to zero
+float GATE_ROTY=50;              // Value under which roty values will be forced to zero
+float GATE_ROTZ=50;              // Value under which rotz values will be forced to zero
 
-float ROTX_SENSITIVITY=1.5;
-float ROTY_SENSITIVITY=1.5;
+float ROTX_SENSITIVITY=5;
+float ROTY_SENSITIVITY=5;
 float ROTZ_SENSITIVITY=5;
 
 // std::map<std::string, float> values_map = {
@@ -202,7 +203,7 @@ int BTNLIST[3] = { // Button pin list
 // Deadzone to filter out unintended movements. 
 // Increase if the mouse has small movements when it should be idle or the mouse is too senstive to subtle movements.
 // Note that the 3d Connections also has its own deadzone processes
-int DEADZONE = 40;
+int DEADZONE = 55;
 
 
 // This portion sets up the communication with the 3DConnexion software. The communication protocol is created here.
@@ -376,17 +377,25 @@ void readAllFromButtons(uint8_t *buttonValues){
 // raulpetru - return UI elements
 void return_ui() {
     const char * ui_values=
-    "name=TRANSX_SENSITIVITY;type=slider;min=1;max=15;default=1;\n"
-    "name=TRANSY_SENSITIVITY;type=slider;min=1;max=15;default=1;\n"
-    "name=POS_TRANSZ_SENSITIVITY;type=slider;min=1;max=15;default=2;\n"
-    "name=NEG_TRANSZ_SENSITIVITY;type=slider;min=1;max=15;default=1;\n"
-    "name=GATE_NEG_TRANSZ;type=slider;min=1;max=30;default=5;\n"
-    "name=GATE_ROTX;type=slider;min=1;max=30;default=10;\n"
-    "name=GATE_ROTY;type=slider;min=1;max=30;default=10;\n"
-    "name=GATE_ROTZ;type=slider;min=1;max=30;default=5;\n"
-    "name=ROTX_SENSITIVITY;type=slider;min=1;max=15;default=1;\n"
-    "name=ROTY_SENSITIVITY;type=slider;min=1;max=15;default=1;\n"
-    "name=ROTZ_SENSITIVITY;type=slider;min=1;max=15;default=1;\n"; // Don't forget ";" on last line
+    "name=DEADZONE;send_name=dz;type=slider;tab=Deadzone;min=0;max=350;default=55;\n"
+    "name=TRANSX_SENSITIVITY;send_name=tsx;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
+    "name=TRANSY_SENSITIVITY;send_name=tsy;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
+    "name=POS_TRANSZ_SENSITIVITY;send_name=ptsy;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
+    "name=NEG_TRANSZ_SENSITIVITY;send_name=ntsy;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
+    "name=GATE_POS_TRANSZ;send_name=gptz;tab=Deadzone;type=slider;min=0;max=350;default=0;\n"
+    "name=GATE_NEG_TRANSZ;send_name=gntz;tab=Deadzone;type=slider;min=0;max=350;default=0;\n"
+    "name=GATE_ROTX;send_name=grx;tab=Deadzone;type=slider;min=0;max=350;default=50;\n"
+    "name=GATE_ROTY;send_name=gry;tab=Deadzone;type=slider;min=0;max=350;default=50;\n"
+    "name=GATE_ROTZ;send_name=grz;tab=Deadzone;type=slider;min=0;max=350;default=50;\n"
+    "name=ROTX_SENSITIVITY;send_name=rtsx;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
+    "name=ROTY_SENSITIVITY;send_name=rtsy;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
+    "name=ROTZ_SENSITIVITY;send_name=rtsz;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
+    "name=invX;send_name=invx;tab=Invert directions;type=bool;default=0;\n" // For bool values use 0 for False, 1 for True
+    "name=invY;send_name=invy;tab=Invert directions;type=bool;default=0;\n"
+    "name=invZ;send_name=invz;tab=Invert directions;type=bool;default=0;\n"
+    "name=invRX;send_name=invrx;tab=Invert directions;type=bool;default=0;\n"
+    "name=invRY;send_name=invry;tab=Invert directions;type=bool;default=0;\n"
+    "name=invRZ;send_name=invrz;tab=Invert directions;type=bool;default=0;\n"; // Don't forget ";" on last line
     Serial.print(ui_values);
     return ui_values;
 }
@@ -406,38 +415,62 @@ void processPair(String pair) {
     if (key == "GET_UI") {
       return_ui();
     }
-    if (key == "TRANSX_SENSITIVITY") {
-        TRANSX_SENSITIVITY = value.toFloat();
+    if (key == "dz") {
+        DEADZONE = value.toFloat();
     }
-    if (key == "TRANSY_SENSITIVITY") {
-        TRANSY_SENSITIVITY = value.toFloat();
+    if (key == "tsx") {
+        TRANSX_SENSITIVITY = (value.toFloat()/10); // Divide the value received through UI by 10 to obtain a more accurate sensitivity control.
     }
-    if (key == "POS_TRANSZ_SENSITIVITY") {
-        POS_TRANSZ_SENSITIVITY = value.toFloat();
+    if (key == "tsy") {
+        TRANSY_SENSITIVITY = (value.toFloat()/10);
     }
-    if (key == "NEG_TRANSZ_SENSITIVITY") {
-        NEG_TRANSZ_SENSITIVITY = value.toFloat();
+    if (key == "ptsy") {
+        POS_TRANSZ_SENSITIVITY = (value.toFloat()/10);
     }
-    if (key == "GATE_NEG_TRANSZ") {
+    if (key == "ntsy") {
+        NEG_TRANSZ_SENSITIVITY = (value.toFloat()/10);
+    }
+    if (key == "gptz") {
+        GATE_POS_TRANSZ = value.toFloat();
+    }
+    if (key == "gntz") {
         GATE_NEG_TRANSZ = value.toFloat();
     }
-    if (key == "GATE_ROTX") {
+    if (key == "grx") {
         GATE_ROTX = value.toFloat();
     }
-    if (key == "GATE_ROTY") {
+    if (key == "gry") {
         GATE_ROTY = value.toFloat();
     }
-    if (key == "GATE_ROTZ") {
+    if (key == "grz") {
         GATE_ROTZ = value.toFloat();
     }
-    if (key == "ROTX_SENSITIVITY") {
-        ROTX_SENSITIVITY = value.toFloat();
+    if (key == "rtsx") {
+        ROTX_SENSITIVITY = (value.toFloat()/10);
     }
-    if (key == "ROTY_SENSITIVITY") {
-        ROTY_SENSITIVITY = value.toFloat();
+    if (key == "rtsy") {
+        ROTY_SENSITIVITY = (value.toFloat()/10);
     }
-    if (key == "ROTZ_SENSITIVITY") {
-        ROTZ_SENSITIVITY = value.toFloat();
+    if (key == "rtsz") {
+        ROTZ_SENSITIVITY = (value.toFloat()/10);
+    }
+    if (key == "invx") {
+        invX = (value.toInt() == 1) ? true : false;
+    }
+    if (key == "invy") {
+        invY = (value.toInt() == 1) ? true : false;
+    }
+    if (key == "invz") {
+        invZ = (value.toInt() == 1) ? true : false;
+    }
+    if (key == "invrx") {
+        invRX = (value.toInt() == 1) ? true : false;
+    }
+    if (key == "invry") {
+        invRY = (value.toInt() == 1) ? true : false;
+    }
+    if (key == "invrz") {
+        invRZ = (value.toInt() == 1) ? true : false;
     }
 }
 
@@ -608,23 +641,27 @@ void loop() {
 
   if (transZ < 0){
     transZ = modifierFunction(transZ/((float)NEG_TRANSZ_SENSITIVITY));
-    if (abs(transZ) < ((float)GATE_NEG_TRANSZ)) {
+    if (abs(transZ) < GATE_NEG_TRANSZ) {
       transZ = 0;
     }
   } else {
     transZ = constrain(transZ/((float)POS_TRANSZ_SENSITIVITY), -350, 350);
+    if (abs(transZ) < GATE_POS_TRANSZ) {
+      transZ = 0;
+    }
   }
+  
 
   rotX = modifierFunction(rotX/((float)ROTX_SENSITIVITY));
-  if (abs(rotX) < ((float)GATE_ROTX)){
+  if (abs(rotX) < GATE_ROTX){
     rotX = 0;
   }
   rotY = modifierFunction(rotY/((float)ROTY_SENSITIVITY));
-  if (abs(rotY) < ((float)GATE_ROTY)){
+  if (abs(rotY) < GATE_ROTY){
     rotY = 0;
   }
   rotZ = modifierFunction(rotZ/((float)ROTZ_SENSITIVITY));
-  if (abs(rotZ) < ((float)GATE_ROTZ)){
+  if (abs(rotZ) < GATE_ROTZ){
     rotZ = 0;
   }
 // Invert directions if needed

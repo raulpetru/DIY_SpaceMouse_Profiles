@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMainWindow,
     QPushButton,
-    QSpacerItem, QSizePolicy, QSlider, QSystemTrayIcon, QMenu,
+    QSpacerItem, QSizePolicy, QSlider, QSystemTrayIcon, QMenu, QTabWidget, QWidget, QVBoxLayout, QCheckBox,
 )
 from serial.serialutil import SerialException
 from MainWindow import Ui_MainWindow
@@ -47,10 +47,10 @@ def get_mouse_settings(selected_port):
         for i in line:
             key, value = i.split('=')
             key_value[key] = value
+            if key == 'send_name':
+                setting_name = value
 
-        setting_name = line[0].split('=')[1]
         dict_mouse_settings[setting_name] = key_value
-
     return dict_mouse_settings
 
 
@@ -103,36 +103,72 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Add widgets
         self.list_of_widgets = list()
         i = 0
-        for widget in self.mouse_settings:
-            self.list_of_widgets.append(QLabel(self.page))
-            self.list_of_widgets[i].setObjectName(f'label-{widget}')
-            label_string = f'{widget} (values:{self.mouse_settings[widget]["min"]}-{self.mouse_settings[widget]["max"]}, default:{self.mouse_settings[widget]["default"]})'
+
+        # Create the tab widget
+        self.tab_widget = QTabWidget(self.page)
+        self.tab_widget.setObjectName('tabWidget')
+        # Keep a set of tabs and add widgets to existing tabs if they exist
+        set_of_tabs = set()
+        list_of_tabs_layouts = []
+        for widget in self.mouse_settings.values():
+            tab_name = widget['tab']
+            if tab_name in set_of_tabs:
+                tab_layout = self.findChild(QVBoxLayout, f'tab_layout-{tab_name}')
+            else:
+                tab = QWidget(self.tab_widget)
+                tab.setObjectName(f'tab-{tab_name}')
+                tab_layout = QVBoxLayout(tab)
+                tab_layout.setObjectName(f'tab_layout-{tab_name}')
+                self.tab_widget.addTab(tab, f'{tab_name}')
+                set_of_tabs.add(tab_name)
+                list_of_tabs_layouts.append(tab_layout)
+
+            self.list_of_widgets.append(QLabel(tab))
+            self.list_of_widgets[i].setObjectName(f'label-{widget["send_name"]}')
+            if widget['type'] == 'slider':
+                label_string = f'{widget['name']} (values:{widget["min"]}-{widget["max"]}, default:{widget["default"]})'
+                self.list_of_widgets.append(QSlider(tab))
+                self.list_of_widgets[i + 1].setObjectName(f'{widget["send_name"]}')
+                self.list_of_widgets[i + 1].setOrientation(Qt.Orientation.Horizontal)
+                self.list_of_widgets[i + 1].setMinimum(int(widget['min']))
+                self.list_of_widgets[i + 1].setMaximum(int(widget['max']))
+                self.list_of_widgets[i + 1].setValue(int(widget['default']))
+                self.list_of_widgets[i + 1].setTickInterval(5)
+                self.list_of_widgets[i + 1].setTickPosition(QSlider.TicksAbove)
+                self.list_of_widgets[i + 1].setSingleStep(1)
+                tab_layout.addWidget(self.list_of_widgets[i])
+                tab_layout.addWidget(self.list_of_widgets[i + 1])
+            elif widget['type'] == 'bool':
+                label_string = f'{widget['name']} (values: false/true, default:{widget["default"]})'
+                self.list_of_widgets.append(QCheckBox(tab))
+                self.list_of_widgets[i + 1].setObjectName(f'{widget["send_name"]}')
+                check_value = int(widget['default'])
+                if check_value:
+                    check_value = Qt.Checked
+                else:
+                    check_value = Qt.Unchecked
+                self.list_of_widgets[i + 1].setCheckState(check_value)
+                tab_layout.addWidget(self.list_of_widgets[i])
+                tab_layout.addWidget(self.list_of_widgets[i + 1])
             self.list_of_widgets[i].original_label = label_string
-            self.verticalLayout_4.addWidget(self.list_of_widgets[i])
 
-            self.list_of_widgets.append(QSlider(self.page))
-            self.list_of_widgets[i + 1].setObjectName(f"{widget}")
-            self.list_of_widgets[i + 1].setOrientation(Qt.Orientation.Horizontal)
-            self.list_of_widgets[i + 1].setMinimum(int(self.mouse_settings[widget]['min']))
-            self.list_of_widgets[i + 1].setMaximum(int(self.mouse_settings[widget]['max']))
-            self.list_of_widgets[i + 1].setValue(int(self.mouse_settings[widget]['default']))
-            self.list_of_widgets[i + 1].setTickInterval(5)
-            self.list_of_widgets[i + 1].setTickPosition(QSlider.TicksAbove)
-            self.verticalLayout_4.addWidget(self.list_of_widgets[i + 1])
-
-            # Connect slider to label
-            self.list_of_widgets[i + 1].valueChanged.connect(self.update_label)
-
-            # Change label string after creating slider
-            self.list_of_widgets[i].setText(f'{label_string} = {self.list_of_widgets[i + 1].value()}')
+            # Connect slider to label and change label string after creating slider
+            if widget['type'] == 'slider':
+                self.list_of_widgets[i + 1].valueChanged.connect(self.update_label)
+                self.list_of_widgets[i].setText(f'{label_string} = {self.list_of_widgets[i + 1].value()}')
+            elif widget['type'] == 'bool':
+                self.list_of_widgets[i + 1].checkStateChanged.connect(self.update_label)
+                self.list_of_widgets[i].setText(f'{label_string} = {self.list_of_widgets[i + 1].isChecked()}')
 
             # Increment counter
             i = i + 2
 
+        self.verticalLayout_4.addWidget(self.tab_widget)
+        self.tab_widget.setCurrentIndex(0)
+        for tab_page in list_of_tabs_layouts:
+            tab_page.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
         # Overwrite the vertical spacer
         self.verticalLayout_4.removeItem(self.verticalSpacer_2)
-        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-        self.verticalLayout_4.addItem(self.verticalSpacer_2)
 
         # Apply and Save button
         self.saveButton = QPushButton('Apply and Save', self.page)
@@ -140,21 +176,35 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.saveButton.released.connect(self.apply_and_save)
 
     def apply_and_save(self):
-        for slider in self.list_of_widgets:
-            if isinstance(slider, QSlider):
+        for widget in self.list_of_widgets:
+            if isinstance(widget, QSlider):
                 if self.active_window != '' and self.active_window != 'None':
                     if self.active_window in self.loaded_profiles:
-                        self.loaded_profiles[self.active_window][slider.objectName()] = slider.value()
+                        self.loaded_profiles[self.active_window][widget.objectName()] = widget.value()
                     else:
-                        self.loaded_profiles[self.active_window] = {slider.objectName(): slider.value()}
+                        self.loaded_profiles[self.active_window] = {widget.objectName(): widget.value()}
+            elif isinstance(widget, QCheckBox):
+                if self.active_window != '' and self.active_window != 'None':
+                    # Save values as 0/1 instead of false/true
+                    if widget.isChecked():
+                        value = 1
+                    else:
+                        value = 0
+                    if self.active_window in self.loaded_profiles:
+                        self.loaded_profiles[self.active_window][widget.objectName()] = value
+                    else:
+                        self.loaded_profiles[self.active_window] = {widget.objectName(): value}
         save_json(self.loaded_profiles)
         self.send_values_to_mouse()
 
     def update_label(self):
-        slider = self.sender()
-        if isinstance(slider, QSlider):
-            label = self.findChild(QLabel, f'label-{slider.objectName()}')
-            label.setText(f'{label.original_label} = {slider.value()}')
+        sender = self.sender()
+        if isinstance(sender, QSlider):
+            label = self.findChild(QLabel, f'label-{sender.objectName()}')
+            label.setText(f'{label.original_label} = {sender.value()}')
+        elif isinstance(sender, QCheckBox):
+            label = self.findChild(QLabel, f'label-{sender.objectName()}')
+            label.setText(f'{label.original_label} = {sender.isChecked()}')
 
     def get_active_window(self):
         current_window = win32gui.GetForegroundWindow()
@@ -181,15 +231,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         send_list = []
         for widget in self.list_of_widgets:
             if self.active_window in self.loaded_profiles:
-                if isinstance(widget, QSlider) and widget.objectName() in self.loaded_profiles[self.active_window]:
-                    value = self.loaded_profiles[self.active_window][widget.objectName()]
-                    widget.setValue(value)
-                    send_list.append(f'{widget.objectName()}={widget.value()},')
+                if (isinstance(widget, QSlider) or isinstance(widget, QCheckBox)) and widget.objectName() in self.loaded_profiles[self.active_window]:
+                    if isinstance(widget, QSlider):
+                        value = self.loaded_profiles[self.active_window][widget.objectName()]
+                        widget.setValue(value)
+                        send_list.append(f'{widget.objectName()}={widget.value()},')
+                    elif isinstance(widget, QCheckBox):
+                        value = int(self.loaded_profiles[self.active_window][widget.objectName()])
+                        if value:
+                            set_value = Qt.Checked
+                        else:
+                            set_value = Qt.Unchecked
+                        widget.setCheckState(set_value)
+                        send_list.append(f'{widget.objectName()}={value},')
             else:
                 if isinstance(widget, QSlider):
                     value = int(self.mouse_settings[widget.objectName()]['default'])
                     widget.setValue(value)
                     send_list.append(f'{widget.objectName()}={widget.value()},')
+                if isinstance(widget, QCheckBox):
+                    value = int(self.mouse_settings[widget.objectName()]['default'])
+                    if value:
+                        set_value = Qt.Checked
+                    else:
+                        set_value = Qt.Unchecked
+                    widget.setCheckState(set_value)
+                    send_list.append(f'{widget.objectName()}={value},')
         # Remove last comma
         send_list[-1] = send_list[-1][:-1]
         send_list.append('\n')

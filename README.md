@@ -1,5 +1,5 @@
 # Description
-DIY SpaceMouse Profiles will provide a user interface for the values provided by the Space Mouse firmware.
+DIY SpaceMouse Profiles builds a user interface based on values requested from the DIY SpaceMouse.
 
 The firmware provided in this repository is modified to send through serial information to build the UI:
 <details>
@@ -8,17 +8,25 @@ The firmware provided in this repository is modified to send through serial info
 ```c++
 void return_ui() {
     const char * ui_values=
-    "name=TRANSX_SENSITIVITY;type=slider;min=1;max=15;default=1;\n"
-    "name=TRANSY_SENSITIVITY;type=slider;min=1;max=15;default=1;\n"
-    "name=POS_TRANSZ_SENSITIVITY;type=slider;min=1;max=15;default=2;\n"
-    "name=NEG_TRANSZ_SENSITIVITY;type=slider;min=1;max=15;default=1;\n"
-    "name=GATE_NEG_TRANSZ;type=slider;min=1;max=30;default=5;\n"
-    "name=GATE_ROTX;type=slider;min=1;max=30;default=10;\n"
-    "name=GATE_ROTY;type=slider;min=1;max=30;default=10;\n"
-    "name=GATE_ROTZ;type=slider;min=1;max=30;default=5;\n"
-    "name=ROTX_SENSITIVITY;type=slider;min=1;max=15;default=1;\n"
-    "name=ROTY_SENSITIVITY;type=slider;min=1;max=15;default=1;\n"
-    "name=ROTZ_SENSITIVITY;type=slider;min=1;max=15;default=1;\n"; // Don't forget ";" on last line
+    "name=DEADZONE;send_name=dz;type=slider;tab=Deadzone;min=0;max=350;default=55;\n"
+    "name=TRANSX_SENSITIVITY;send_name=tsx;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
+    "name=TRANSY_SENSITIVITY;send_name=tsy;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
+    "name=POS_TRANSZ_SENSITIVITY;send_name=ptsy;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
+    "name=NEG_TRANSZ_SENSITIVITY;send_name=ntsy;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
+    "name=GATE_POS_TRANSZ;send_name=gptz;tab=Deadzone;type=slider;min=0;max=350;default=0;\n"
+    "name=GATE_NEG_TRANSZ;send_name=gntz;tab=Deadzone;type=slider;min=0;max=350;default=0;\n"
+    "name=GATE_ROTX;send_name=grx;tab=Deadzone;type=slider;min=0;max=350;default=50;\n"
+    "name=GATE_ROTY;send_name=gry;tab=Deadzone;type=slider;min=0;max=350;default=50;\n"
+    "name=GATE_ROTZ;send_name=grz;tab=Deadzone;type=slider;min=0;max=350;default=50;\n"
+    "name=ROTX_SENSITIVITY;send_name=rtsx;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
+    "name=ROTY_SENSITIVITY;send_name=rtsy;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
+    "name=ROTZ_SENSITIVITY;send_name=rtsz;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
+    "name=invX;send_name=invx;tab=Invert directions;type=bool;default=0;\n" // For bool values use 0 for False, 1 for True
+    "name=invY;send_name=invy;tab=Invert directions;type=bool;default=0;\n"
+    "name=invZ;send_name=invz;tab=Invert directions;type=bool;default=0;\n"
+    "name=invRX;send_name=invrx;tab=Invert directions;type=bool;default=0;\n"
+    "name=invRY;send_name=invry;tab=Invert directions;type=bool;default=0;\n"
+    "name=invRZ;send_name=invrz;tab=Invert directions;type=bool;default=0;\n"; // Don't forget ";" on last line
     Serial.print(ui_values);
     return ui_values;
 }
@@ -45,38 +53,62 @@ void processPair(String pair) {
     if (key == "GET_UI") {
       return_ui();
     }
-    if (key == "TRANSX_SENSITIVITY") {
-        TRANSX_SENSITIVITY = value.toFloat();
+    if (key == "dz") {
+        DEADZONE = value.toFloat();
     }
-    if (key == "TRANSY_SENSITIVITY") {
-        TRANSY_SENSITIVITY = value.toFloat();
+    if (key == "tsx") {
+        TRANSX_SENSITIVITY = (value.toFloat()/10); // Divide the value received through UI by 10 to obtain a more accurate sensitivity control.
     }
-    if (key == "POS_TRANSZ_SENSITIVITY") {
-        POS_TRANSZ_SENSITIVITY = value.toFloat();
+    if (key == "tsy") {
+        TRANSY_SENSITIVITY = (value.toFloat()/10);
     }
-    if (key == "NEG_TRANSZ_SENSITIVITY") {
-        NEG_TRANSZ_SENSITIVITY = value.toFloat();
+    if (key == "ptsy") {
+        POS_TRANSZ_SENSITIVITY = (value.toFloat()/10);
     }
-    if (key == "GATE_NEG_TRANSZ") {
+    if (key == "ntsy") {
+        NEG_TRANSZ_SENSITIVITY = (value.toFloat()/10);
+    }
+    if (key == "gptz") {
+        GATE_POS_TRANSZ = value.toFloat();
+    }
+    if (key == "gntz") {
         GATE_NEG_TRANSZ = value.toFloat();
     }
-    if (key == "GATE_ROTX") {
+    if (key == "grx") {
         GATE_ROTX = value.toFloat();
     }
-    if (key == "GATE_ROTY") {
+    if (key == "gry") {
         GATE_ROTY = value.toFloat();
     }
-    if (key == "GATE_ROTZ") {
+    if (key == "grz") {
         GATE_ROTZ = value.toFloat();
     }
-    if (key == "ROTX_SENSITIVITY") {
-        ROTX_SENSITIVITY = value.toFloat();
+    if (key == "rtsx") {
+        ROTX_SENSITIVITY = (value.toFloat()/10);
     }
-    if (key == "ROTY_SENSITIVITY") {
-        ROTY_SENSITIVITY = value.toFloat();
+    if (key == "rtsy") {
+        ROTY_SENSITIVITY = (value.toFloat()/10);
     }
-    if (key == "ROTZ_SENSITIVITY") {
-        ROTZ_SENSITIVITY = value.toFloat();
+    if (key == "rtsz") {
+        ROTZ_SENSITIVITY = (value.toFloat()/10);
+    }
+    if (key == "invx") {
+        invX = (value.toInt() == 1) ? true : false;
+    }
+    if (key == "invy") {
+        invY = (value.toInt() == 1) ? true : false;
+    }
+    if (key == "invz") {
+        invZ = (value.toInt() == 1) ? true : false;
+    }
+    if (key == "invrx") {
+        invRX = (value.toInt() == 1) ? true : false;
+    }
+    if (key == "invry") {
+        invRY = (value.toInt() == 1) ? true : false;
+    }
+    if (key == "invrz") {
+        invRZ = (value.toInt() == 1) ? true : false;
     }
 }
 ```
@@ -113,7 +145,7 @@ void loop() {
 
 [Check out the file for all changes.](https://github.com/raulpetru/DIY_SpaceMouse_Profiles/blob/master/SpaceMouse%20Firmwares/HE_Spacemouse/HE_Spacemouse.ino)
 
-**_There are quite a few firmwares available and, they can be fairly easily modified to work with this UI application._**
+**_There are quite a few firmwares available around and, they can be fairly easily modified to work with this UI application._**
 
 # Instructions
 ## Set up SpaceMouse
@@ -125,7 +157,7 @@ void loop() {
 
 ## Set up DIY SpaceMouse Profiles application
 1. Download [latest release](https://github.com/raulpetru/DIY_SpaceMouse_Profiles/releases).
-2. Connect your DIY SpaceMouse to PC (else the application won't start).
+2. Connect your DIY SpaceMouse to PC (__else the application won't start__).
 3. (Recommended) Create a folder `DIY SpaceMouse Profiles` and place the downloaded .exe inside.
 4. Run `DIY_SpaceMouse_Profiles.exe`
 
