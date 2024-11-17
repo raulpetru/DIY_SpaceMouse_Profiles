@@ -1,4 +1,12 @@
+
 # Description
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/014b1838-8ab1-4964-9dc9-f9f4e3577095" width=33%>
+  <img src="https://github.com/user-attachments/assets/ebb540b8-f2df-4363-97a6-aa19606f2d16" width=33%>
+  <img src="https://github.com/user-attachments/assets/aec96826-6b83-4e90-bdca-509b5fe2e851" width=33%>
+</p>
+
 DIY SpaceMouse Profiles builds a user interface based on values requested from the DIY SpaceMouse.
 
 The firmware provided in this repository is modified to send through serial information to build the UI:
@@ -145,7 +153,7 @@ void loop() {
 
 [Check out the file for all changes.](https://github.com/raulpetru/DIY_SpaceMouse_Profiles/blob/master/SpaceMouse%20Firmwares/HE_Spacemouse/HE_Spacemouse.ino)
 
-**_There are quite a few firmwares available around and, they can be fairly easily modified to work with this UI application._**
+**_There are quite a few firmwares available around and they can be fairly easily modified to work with this UI application._**
 
 # Instructions
 ## Set up SpaceMouse
