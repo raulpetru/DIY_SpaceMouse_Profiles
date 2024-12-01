@@ -28,7 +28,7 @@ def get_mouse_settings(selected_port):
     try_counter = 0
     while not mouse_settings:
         try:
-            ser = serial.Serial(selected_port, 2500, timeout=1)
+            ser = serial.Serial(selected_port, 250000, timeout=1)
             ser.write('GET_UI'.encode('utf-8'))
             time.sleep(1)
             mouse_settings = ser.readlines()
