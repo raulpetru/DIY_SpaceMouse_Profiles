@@ -375,102 +375,151 @@ void readAllFromButtons(uint8_t *buttonValues){
 }
 
 // raulpetru - return UI elements
+const int ui_values_length = 1800; // The length of this string is already know, you can set an exact number but don't forget to change it when modifying the string (shortening or expanding it)
+const char ui_values[ui_values_length]=
+"name=DEADZONE;send_name=dz;type=slider;tab=Deadzone;min=0;max=350;default=55;\n\
+name=TRANSX_SENSITIVITY;send_name=tsx;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n\
+name=TRANSY_SENSITIVITY;send_name=tsy;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n\
+name=POS_TRANSZ_SENSITIVITY;send_name=ptsy;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n\
+name=NEG_TRANSZ_SENSITIVITY;send_name=ntsy;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n\
+name=GATE_POS_TRANSZ;send_name=gptz;tab=Deadzone;type=slider;min=0;max=350;default=0;\n\
+name=GATE_NEG_TRANSZ;send_name=gntz;tab=Deadzone;type=slider;min=0;max=350;default=0;\n\
+name=GATE_ROTX;send_name=grx;tab=Deadzone;type=slider;min=0;max=350;default=50;\n\
+name=GATE_ROTY;send_name=gry;tab=Deadzone;type=slider;min=0;max=350;default=50;\n\
+name=GATE_ROTZ;send_name=grz;tab=Deadzone;type=slider;min=0;max=350;default=50;\n\
+name=ROTX_SENSITIVITY;send_name=rtsx;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n\
+name=ROTY_SENSITIVITY;send_name=rtsy;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n\
+name=ROTZ_SENSITIVITY;send_name=rtsz;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n\
+name=invX;send_name=invx;tab=Invert directions;type=bool;default=0;\n\
+name=invY;send_name=invy;tab=Invert directions;type=bool;default=0;\n\
+name=invZ;send_name=invz;tab=Invert directions;type=bool;default=0;\n\
+name=invRX;send_name=invrx;tab=Invert directions;type=bool;default=0;\n\
+name=invRY;send_name=invry;tab=Invert directions;type=bool;default=0;\n\
+name=invRZ;send_name=invrz;tab=Invert directions;type=bool;default=0;\n"; // Don't forget ";" on last line
+
 void return_ui() {
-    const char * ui_values=
-    "name=DEADZONE;send_name=dz;type=slider;tab=Deadzone;min=0;max=350;default=55;\n"
-    "name=TRANSX_SENSITIVITY;send_name=tsx;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
-    "name=TRANSY_SENSITIVITY;send_name=tsy;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
-    "name=POS_TRANSZ_SENSITIVITY;send_name=ptsy;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
-    "name=NEG_TRANSZ_SENSITIVITY;send_name=ntsy;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
-    "name=GATE_POS_TRANSZ;send_name=gptz;tab=Deadzone;type=slider;min=0;max=350;default=0;\n"
-    "name=GATE_NEG_TRANSZ;send_name=gntz;tab=Deadzone;type=slider;min=0;max=350;default=0;\n"
-    "name=GATE_ROTX;send_name=grx;tab=Deadzone;type=slider;min=0;max=350;default=50;\n"
-    "name=GATE_ROTY;send_name=gry;tab=Deadzone;type=slider;min=0;max=350;default=50;\n"
-    "name=GATE_ROTZ;send_name=grz;tab=Deadzone;type=slider;min=0;max=350;default=50;\n"
-    "name=ROTX_SENSITIVITY;send_name=rtsx;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
-    "name=ROTY_SENSITIVITY;send_name=rtsy;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
-    "name=ROTZ_SENSITIVITY;send_name=rtsz;tab=Sensitivity;type=slider;min=1;max=30;default=5;\n"
-    "name=invX;send_name=invx;tab=Invert directions;type=bool;default=0;\n" // For bool values use 0 for False, 1 for True
-    "name=invY;send_name=invy;tab=Invert directions;type=bool;default=0;\n"
-    "name=invZ;send_name=invz;tab=Invert directions;type=bool;default=0;\n"
-    "name=invRX;send_name=invrx;tab=Invert directions;type=bool;default=0;\n"
-    "name=invRY;send_name=invry;tab=Invert directions;type=bool;default=0;\n"
-    "name=invRZ;send_name=invrz;tab=Invert directions;type=bool;default=0;\n"; // Don't forget ";" on last line
     Serial.print(ui_values);
-    return ui_values;
 }
 
 // raulpetru -- process input received through Serial
-String inputString;
+const int numChars = 200; // The max number of characters that can be received from the DIY_SpaceMouse_Profiles app, which is a string composed by keys and values, see processPair() method below
+char inputString[numChars];
 
-void processPair(String pair) {
+boolean newData = false;
+
+void recvWithEndMarker() {
+    static byte ndx = 0;
+    char endMarker = '\n';
+    char rc;
+
+    while (Serial.available() > 0 && newData == false) {
+        rc = Serial.read();
+
+        if (rc != endMarker) {
+            inputString[ndx] = rc;
+            ndx++;
+            if (ndx >= numChars) {
+                ndx = numChars - 1;
+            }
+        } else {
+            inputString[ndx] = '\0'; // terminate the string
+            ndx = 0;
+            newData = true;
+        }
+    }
+}
+
+void processInputString() {
+    char* startPtr = inputString;
+    char* endPtr = strchr(startPtr, ',');
+
+    while (endPtr != NULL) {
+        *endPtr = '\0'; // Replace comma with null character to split the string
+        processPair(startPtr);
+        startPtr = endPtr + 1;
+        endPtr = strchr(startPtr, ',');
+    }
+
+    // Process the last pair (or the only pair if no commas were found)
+    processPair(startPtr);
+}
+
+void processPair(char* pair) {
     // Find the position of the '=' sign
-    int separatorIndex = pair.indexOf('=');
+    char* separatorIndex = strchr(pair, '=');
 
     // Split the string into key and value
-    String key = pair.substring(0, separatorIndex);
-    String value = pair.substring(separatorIndex + 1);
+    if (separatorIndex != NULL) {
+        *separatorIndex = '\0'; // Replace '=' with null character to split the string
+        char* key = pair;
+        char* value = separatorIndex + 1;
 
-    // Use the results
-    if (key == "GET_UI") {
-      return_ui();
-    }
-    if (key == "dz") {
-        DEADZONE = value.toFloat();
-    }
-    if (key == "tsx") {
-        TRANSX_SENSITIVITY = (value.toFloat()/10); // Divide the value received through UI by 10 to obtain a more accurate sensitivity control.
-    }
-    if (key == "tsy") {
-        TRANSY_SENSITIVITY = (value.toFloat()/10);
-    }
-    if (key == "ptsy") {
-        POS_TRANSZ_SENSITIVITY = (value.toFloat()/10);
-    }
-    if (key == "ntsy") {
-        NEG_TRANSZ_SENSITIVITY = (value.toFloat()/10);
-    }
-    if (key == "gptz") {
-        GATE_POS_TRANSZ = value.toFloat();
-    }
-    if (key == "gntz") {
-        GATE_NEG_TRANSZ = value.toFloat();
-    }
-    if (key == "grx") {
-        GATE_ROTX = value.toFloat();
-    }
-    if (key == "gry") {
-        GATE_ROTY = value.toFloat();
-    }
-    if (key == "grz") {
-        GATE_ROTZ = value.toFloat();
-    }
-    if (key == "rtsx") {
-        ROTX_SENSITIVITY = (value.toFloat()/10);
-    }
-    if (key == "rtsy") {
-        ROTY_SENSITIVITY = (value.toFloat()/10);
-    }
-    if (key == "rtsz") {
-        ROTZ_SENSITIVITY = (value.toFloat()/10);
-    }
-    if (key == "invx") {
-        invX = (value.toInt() == 1) ? true : false;
-    }
-    if (key == "invy") {
-        invY = (value.toInt() == 1) ? true : false;
-    }
-    if (key == "invz") {
-        invZ = (value.toInt() == 1) ? true : false;
-    }
-    if (key == "invrx") {
-        invRX = (value.toInt() == 1) ? true : false;
-    }
-    if (key == "invry") {
-        invRY = (value.toInt() == 1) ? true : false;
-    }
-    if (key == "invrz") {
-        invRZ = (value.toInt() == 1) ? true : false;
+        // Use the results
+        if (strcmp(key, "dz") == 0) {
+            DEADZONE = atof(value);
+        }
+        if (strcmp(key, "tsx") == 0) {
+            TRANSX_SENSITIVITY = atof(value) / 10; // Divide the value received through UI by 10 to obtain a more accurate sensitivity control.
+        }
+        if (strcmp(key, "tsy") == 0) {
+            TRANSY_SENSITIVITY = atof(value) / 10;
+        }
+        if (strcmp(key, "ptsy") == 0) {
+            POS_TRANSZ_SENSITIVITY = atof(value) / 10;
+        }
+        if (strcmp(key, "ntsy") == 0) {
+            NEG_TRANSZ_SENSITIVITY = atof(value) / 10;
+        }
+        if (strcmp(key, "gptz") == 0) {
+            GATE_POS_TRANSZ = atof(value);
+        }
+        if (strcmp(key, "gntz") == 0) {
+            GATE_NEG_TRANSZ = atof(value);
+        }
+        if (strcmp(key, "grx") == 0) {
+            GATE_ROTX = atof(value);
+        }
+        if (strcmp(key, "gry") == 0) {
+            GATE_ROTY = atof(value);
+        }
+        if (strcmp(key, "grz") == 0) {
+            GATE_ROTZ = atof(value);
+        }
+        if (strcmp(key, "rtsx") == 0) {
+            ROTX_SENSITIVITY = atof(value) / 10;
+        }
+        if (strcmp(key, "rtsy") == 0) {
+            ROTY_SENSITIVITY = atof(value) / 10;
+        }
+        if (strcmp(key, "rtsz") == 0) {
+            ROTZ_SENSITIVITY = atof(value) / 10;
+        }
+        if (strcmp(key, "invx") == 0) {
+            invX = static_cast<bool>(atoi(value));
+        }
+        if (strcmp(key, "invy") == 0) {
+            invY = static_cast<bool>(atoi(value));
+        }
+        if (strcmp(key, "invz") == 0) {
+            invZ = static_cast<bool>(atoi(value));
+        }
+        if (strcmp(key, "invrx") == 0) {
+            invRX = static_cast<bool>(atoi(value));
+        }
+        if (strcmp(key, "invry") == 0) {
+            invRY = static_cast<bool>(atoi(value));
+        }
+        if (strcmp(key, "invrz") == 0) {
+            invRZ = static_cast<bool>(atoi(value));
+        }
+    } else {
+        // Handle keys without values
+        char* key = pair;
+
+        if (strcmp(key, "GET_UI") == 0) {
+            return_ui();
+        }
+        // Add other keys that might not have values if needed
     }
 }
 
@@ -526,25 +575,13 @@ void send_command(int16_t rx, int16_t ry, int16_t rz, int16_t x, int16_t y, int1
   }
 }
 
-void loop() {
-  if (Serial.available()) {
-        inputString = Serial.readStringUntil('\n');  // Read the input string
+void loop() {  
+  recvWithEndMarker();
+  if (newData == true) {
+    processInputString();
+    newData = false;
+  }
 
-        // Split the string by commas
-        int startIndex = 0;
-        int endIndex = inputString.indexOf(',');
-
-        while (endIndex != -1) {
-            String pair = inputString.substring(startIndex, endIndex);
-            processPair(pair);
-            startIndex = endIndex + 1;
-            endIndex = inputString.indexOf(',', startIndex);
-        }
-
-        // Process the last pair (or the only pair if no commas were found)
-        String lastPair = inputString.substring(startIndex);
-        processPair(lastPair);
-    }
 
   int rawReads[8], centered[8];
   uint8_t buttonReads[4];
